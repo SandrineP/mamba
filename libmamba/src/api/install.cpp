@@ -23,6 +23,7 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -979,5 +980,112 @@ namespace mamba
                 }
             }
         }
+
+        struct revision
+        {
+            int key,
+                std::map<std::string, std::pair<mamba::specs::PackageInfo, std::string>> removed_pkg,
+                std::map<std::string, std::pair<mamba::specs::PackageInfo, std::string>> installed_pkg
+        };
+
+        std::vector<revision> revisions;
+        int REVISION;
+        auto user_requests = prefix_data.history().get_user_requests();
+        for (auto r : user_requests)
+        {
+            if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
+            {
+                if (r.revision_num > REVISION)
+                {
+                    revision rev;
+                    rev.key = r.revision_num;
+                    for (auto ud : r.unlink_dists)
+                    {
+                        auto pkg = PackageInfo::from_url(ud);
+                        rev.removed_pkg[pkg.name] = [
+                            pkg,
+                            ud
+                        ];  // TODO: keep only pkg_version instead of pkg ?
+                    }
+                    for (auto ld : r.link_dists)
+                    {
+                        std::string ld_url = "https://conda.anaconda.org/" + ld auto pkg = PackageInfo::from_url(
+                            ld_url
+                        );
+                        rev.installed_pkg[pkg.name] = [
+                            pkg,
+                            ld_url
+                        ];  // TODO: keep only pkg_version instead of pkg ?
+                    }
+                    revisions.push_back(rev)
+                }
+            }
+        }
+
+        map<std::string, std::pair<mamba::specs::PackageInfo, std::string>> removed_pkg_diff;
+        map<std::string, std::pair<mamba::specs::PackageInfo, std::string>> installed_pkg_diff;
+        while (!revisions.empty())
+        {
+            revision = revisions.begin() while (!revision.removed_pkg.empty())
+            {
+                pkg_name, [pkg, url] = revision.removed_pkg.begin();
+                removed_pkg_diff[pkg_name] = [pkg, url];
+                revision.removed_pkg.erase(pkg_name);
+                if (revision.installed_pkg.find(pkg_name) != revision.installed_pkg.end())
+                {
+                    installed_pkg_diff[pkg_name] = revision.installed_pkg[pkg_name];
+                    revision.installed_pkg.erase(pkg_name)
+                }
+                for (auto rev = ++revisions.begin(), rev != revisions.end(), ++rev)
+                {
+                    // Starting with removed packages, there shouldn´t be other cases than the ones
+                    // below.
+                    if (rev.removed_pkg.find(pkg_name) != rev.removed_pkg.end())
+                    {
+                        if (rev.removed_pkg[pkg_name][0].version
+                            == installed_pkg_diff[pkg_name][0].version)
+                        {
+                            installed_pkg_diff.erase(pkg_name);
+                        }
+                    }
+                    if (rev.installed_pkg.find(pkg_name) != rev.installed_pkg.end())
+                    {
+                        installed_pkg_diff[pkg_name] = revision.installed_pkg[pkg_name];
+                        revision.installed_pkg.erase(pkg_name);
+                    }
+                }
+            }
+            while (!revision.installed_pkg.empty())
+            {
+                pkg_name, [pkg, url] = revision.installed_pkg.begin();
+                installed_pkg_diff[pkg_name] = [pkg, url];
+                revision.installed_pkg.erase(pkg_name
+                ) if (revision.removed_pkg.find(pkg_name) != revision.removed_pkg.end())
+                {
+                    removed_pkg_diff[pkg_name] = revision.removed_pkg[pkg_name];
+                    revision.removed_pkg.erase(pkg_name)
+                }
+                for (auto rev = ++revisions.begin(), rev != revisions.end(), ++rev)
+                {
+                    // Starting with installed packages, there shouldn´t be other cases than the
+                    // ones below.
+                    if (rev.installed_pkg.find(pkg_name) != rev.installed_pkg.end())
+                    {
+                        if (rev.installed_pkg[pkg_name][0].version
+                            == removed_pkg_diff[pkg_name][0].version)
+                        {
+                            removed_pkg_diff.erase(pkg_name);
+                        }
+                    }
+                    if (rev.removed_pkg.find(pkg_name) != rev.removed_pkg.end())
+                    {
+                        removed_pkg_diff[pkg_name] = revision.removed_pkg[pkg_name];
+                        revision.removed_pkg.erase(pkg_name);
+                    }
+                }
+            }
+            revisions.erase(revisions.begin())
+        }
+
     }  // detail
 }  // mamba
