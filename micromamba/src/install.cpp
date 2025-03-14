@@ -28,7 +28,7 @@ set_install_command(CLI::App* subcom, Configuration& config)
     auto& revision = config.insert(
         Configurable("revision", int{ -1 }).group("cli").description("Revert to the specified REVISION.")
     );
-    subcom->add_option("revision", revision.get_cli_config<int>(), revision.description());
+    subcom->add_option("--revision", revision.get_cli_config<int>(), revision.description());
     // ->option_text("REVISION");
 
     subcom->callback([&] { return mamba::install(config); });

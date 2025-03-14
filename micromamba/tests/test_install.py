@@ -844,3 +844,21 @@ def test_dry_run_pip_section(tmp_home, tmp_root_prefix, tmp_path):
     # Check that the packages are not installed using `pip`
     res = helpers.umamba_run("-p", env_prefix, "pip", "list")
     assert "numpy" not in res
+
+
+# @pytest.mark.parametrize("revision_option", ["", ("--revision",1)])
+# def test_revision_diff(revision_option):
+def test_revision_diff():
+    env_name = "myenv"
+
+    helpers.create("-n", env_name, "python=3.8")
+    helpers.install("-n", env_name, "xeus=2.0")
+    helpers.update("-n", env_name, "xeus=4.0")
+    helpers.uninstall("-n", env_name, "xeus")
+    helpers.install("-n", env_name, "--revision", "1")
+    res = helpers.umamba_list(
+        "-n",
+        env_name,
+    )
+
+    print(res)

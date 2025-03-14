@@ -110,6 +110,8 @@ namespace mamba
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {
         }
+
+        void install_revision(Context& ctx, ChannelContext& channel_context, int REVISION);
     }
 
 }
