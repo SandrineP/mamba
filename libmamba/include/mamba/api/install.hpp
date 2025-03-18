@@ -16,6 +16,7 @@
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -111,7 +112,22 @@ namespace mamba
         {
         }
 
-        void install_revision(Context& ctx, ChannelContext& channel_context, int REVISION);
+        struct PackageOperation
+        {
+            specs::PackageInfo infos;
+            std::string address;
+        };
+
+        struct PackageDiff
+        {
+            std::map<std::string, PackageOperation>& removed_pkg_diff;
+            std::map<std::string, PackageOperation>& installed_pkg_diff;
+            PrefixData& prefix_data;
+        };
+
+        PackageDiff
+        get_revision_pkg_diff(const Context& ctx, ChannelContext& channel_context, int REVISION);
+        void install_revision(const Context& ctx, ChannelContext& channel_context, int REVISION);
     }
 
 }

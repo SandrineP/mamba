@@ -19,8 +19,10 @@
 #include <unistd.h>
 #endif
 
+#include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/history.hpp"
+#include "mamba/core/prefix_data.hpp"
 
 #include "mambatests.hpp"
 
@@ -103,6 +105,36 @@ namespace mamba
             );
             // Must not throw
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+        }
+
+        TEST_CASE("revision_diff")
+        {
+            // static const auto history_file_path = fs::absolute(
+            //     mambatests::test_data_dir / "history/parse/conda-meta/history"
+            // );
+
+            const auto& context = mambatests::context();
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+
+            int REVISION = 1;
+
+            auto removed_pkg_diff = detail::get_revision_pkg_diff(context, channel_context, REVISION)
+                                        .removed_pkg_diff;
+            auto installed_pkg_diff = detail::get_revision_pkg_diff(context, channel_context, REVISION)
+                                          .installed_pkg_diff;
+            auto prefix_data = detail::get_revision_pkg_diff(context, channel_context, REVISION).prefix_data;
+
+            std::cout << "removed pkgs: " << std::endl;
+            for (auto pkg : removed_pkg_diff)
+            {
+                std::cout << pkg.first << std::endl;
+            }
+            std::cout << std::endl;
+            std::cout << "installed pkgs: " << std::endl;
+            for (auto pkg : installed_pkg_diff)
+            {
+                std::cout << pkg.first << std::endl;
+            }
         }
 
 #ifndef _WIN32

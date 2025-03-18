@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
 
 #include "mamba/api/channel_loader.hpp"
@@ -987,20 +986,14 @@ namespace mamba
             }
         }
 
-        struct PackageOperation
-        {
-            specs::PackageInfo infos;
-            std::string address;
-        };
+        // struct PackageOperation
+        // {
+        //     specs::PackageInfo infos;
+        //     std::string address;
+        // };
 
-        struct PackageDiff
-        {
-            std::map<std::string, PackageOperation> removed_pkg_diff;
-            std::map<std::string, PackageOperation> installed_pkg_diff;
-            PrefixData& prefix_data;
-        };
-
-        PackageDiff get_revision_pkg_diff(Context& ctx, ChannelContext& channel_context, int REVISION)
+        PackageDiff
+        get_revision_pkg_diff(const Context& ctx, ChannelContext& channel_context, int REVISION)
         {
             struct revision
             {
@@ -1151,58 +1144,46 @@ namespace mamba
                                           .installed_pkg_diff;
             auto prefix_data = get_revision_pkg_diff(ctx, channel_context, REVISION).prefix_data;
 
-            std::cout << "removed pkgs: " << std::endl;
-            for (auto pkg : removed_pkg_diff)
+            MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
+
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!exp_load)
             {
-                std::cout << pkg.first << std::endl;
+                throw std::runtime_error(exp_load.error().what());
             }
-            std::cout << std::endl;
-            std::cout << "installed pkgs: " << std::endl;
-            for (auto pkg : installed_pkg_diff)
+
+            load_installed_packages_in_database(ctx, db, prefix_data);
+
+            auto execute_transaction = [&](MTransaction& transaction)
             {
-                std::cout << pkg.first << std::endl;
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
+                }
+
+                auto prompt_entry = transaction.prompt(ctx, channel_context);
+                if (prompt_entry)
+                {
+                    transaction.execute(ctx, channel_context, prefix_data);
+                }
+                return prompt_entry;
+            };
+
+            std::vector<specs::PackageInfo> pkgs_to_remove;
+            std::vector<specs::PackageInfo> pkgs_to_install;
+            for (const auto& pkg : installed_pkg_diff)
+            {
+                pkgs_to_remove.push_back(pkg.second.infos);
             }
-
-            // MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
-
-            // solver::libsolv::Database db{ channel_context.params() };
-            // add_spdlog_logger_to_database(db);
-
-            // auto exp_load = load_channels(ctx, channel_context, db, package_caches);
-            // if (!exp_load)
-            // {
-            //     throw std::runtime_error(exp_load.error().what());
-            // }
-
-            // load_installed_packages_in_database(ctx, db, prefix_data);
-
-            // auto execute_transaction = [&](MTransaction& transaction)
-            // {
-            //     if (ctx.output_params.json)
-            //     {
-            //         transaction.log_json();
-            //     }
-
-            //     auto prompt_entry = transaction.prompt(ctx, channel_context);
-            //     if (prompt_entry)
-            //     {
-            //         transaction.execute(ctx, channel_context, prefix_data);
-            //     }
-            //     return prompt_entry;
-            // };
-
-            // std::vector<specs::PackageInfo> pkgs_to_remove;
-            // std::vector<specs::PackageInfo> pkgs_to_install;
-            // for (const auto& pkg : installed_pkg_diff)
-            // {
-            //     pkgs_to_remove.push_back(pkg.second.infos);
-            // }
-            // for (const auto& pkg : removed_pkg_diff)
-            // {
-            //     pkgs_to_install.push_back(pkg.second.infos);
-            // }
-            // auto transaction = MTransaction(ctx, db, pkgs_to_remove, pkgs_to_install,
-            // package_caches); execute_transaction(transaction);
+            for (const auto& pkg : removed_pkg_diff)
+            {
+                pkgs_to_install.push_back(pkg.second.infos);
+            }
+            auto transaction = MTransaction(ctx, db, pkgs_to_remove, pkgs_to_install, package_caches);
+            execute_transaction(transaction);
         }
     }  // detail
 }  // mamba
