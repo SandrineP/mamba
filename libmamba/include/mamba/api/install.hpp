@@ -126,8 +126,8 @@ namespace mamba
         };
 
         PackageDiff
-        get_revision_pkg_diff(const Context& ctx, ChannelContext& channel_context, int REVISION);
-        void install_revision(const Context& ctx, ChannelContext& channel_context, int REVISION);
+        get_revision_pkg_diff(Context& ctx, ChannelContext& channel_context, int REVISION);
+        void install_revision(Context& ctx, ChannelContext& channel_context, int REVISION);
     }
 
 }

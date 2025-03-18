@@ -113,7 +113,7 @@ namespace mamba
             //     mambatests::test_data_dir / "history/parse/conda-meta/history"
             // );
 
-            const auto& context = mambatests::context();
+            auto& context = mambatests::context();
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
 
             int REVISION = 1;

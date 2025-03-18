@@ -760,7 +760,7 @@ namespace mamba
             other
         };
 
-        void create_empty_target(const Context& context, const fs::u8path& prefix)
+        void create_empty_target(Context& context, const fs::u8path& prefix)
         {
             detail::create_target_directory(context, prefix);
 
@@ -986,14 +986,7 @@ namespace mamba
             }
         }
 
-        // struct PackageOperation
-        // {
-        //     specs::PackageInfo infos;
-        //     std::string address;
-        // };
-
-        PackageDiff
-        get_revision_pkg_diff(const Context& ctx, ChannelContext& channel_context, int REVISION)
+        PackageDiff get_revision_pkg_diff(Context& ctx, ChannelContext& channel_context, int REVISION)
         {
             struct revision
             {
