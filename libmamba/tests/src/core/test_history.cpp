@@ -109,32 +109,28 @@ namespace mamba
 
         TEST_CASE("revision_diff")
         {
-            // static const auto history_file_path = fs::absolute(
-            //     mambatests::test_data_dir / "history/parse/conda-meta/history"
-            // );
-
-            auto& context = mambatests::context();
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
 
+            // Gather history from current history file.
+            History history_instance(mambatests::test_data_dir / "history/parse", channel_context);
+            std::vector<History::UserRequest> user_requests = history_instance.get_user_requests();
             int REVISION = 1;
 
-            auto removed_pkg_diff = detail::get_revision_pkg_diff(context, channel_context, REVISION)
-                                        .removed_pkg_diff;
-            auto installed_pkg_diff = detail::get_revision_pkg_diff(context, channel_context, REVISION)
-                                          .installed_pkg_diff;
-            auto prefix_data = detail::get_revision_pkg_diff(context, channel_context, REVISION).prefix_data;
+            auto revision_pkg_diff = detail::get_revision_pkg_diff(user_requests, REVISION);
+            const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
+            const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
 
-            std::cout << "removed pkgs: " << std::endl;
-            for (auto pkg : removed_pkg_diff)
-            {
-                std::cout << pkg.first << std::endl;
-            }
-            std::cout << std::endl;
-            std::cout << "installed pkgs: " << std::endl;
-            for (auto pkg : installed_pkg_diff)
-            {
-                std::cout << pkg.first << std::endl;
-            }
+            // std::cout << "removed pkgs: " << std::endl;
+            // for (const auto& pkg : removed_pkg_diff)
+            // {
+            //     std::cout << pkg.first << ": " << pkg.second << std::endl;
+            // }
+            // std::cout << std::endl;
+            // std::cout << "installed pkgs: " << ": " << pkg.second << std::endl;
+            // for (const auto& pkg : installed_pkg_diff)
+            // {
+            //     std::cout << pkg.first << std::endl;
+            // }
         }
 
 #ifndef _WIN32

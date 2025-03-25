@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/history.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -114,19 +115,22 @@ namespace mamba
 
         struct PackageOperation
         {
-            specs::PackageInfo infos;
-            std::string address;
+            // specs::PackageInfo infos;
+            // std::string name;
+            std::string version;
+            // std::string address;
         };
 
         struct PackageDiff
         {
-            std::map<std::string, PackageOperation>& removed_pkg_diff;
-            std::map<std::string, PackageOperation>& installed_pkg_diff;
-            PrefixData& prefix_data;
+            std::map<std::string, std::string>& removed_pkg_diff;
+            std::map<std::string, std::string>& installed_pkg_diff;
+            // std::map<std::string, PackageOperation>& removed_pkg_diff;
+            // std::map<std::string, PackageOperation>& installed_pkg_diff;
         };
 
         PackageDiff
-        get_revision_pkg_diff(Context& ctx, ChannelContext& channel_context, int REVISION);
+        get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int REVISION);
         void install_revision(Context& ctx, ChannelContext& channel_context, int REVISION);
     }
 
