@@ -987,93 +987,77 @@ namespace mamba
             }
         }
 
-        struct PackageInfoBuilder
+        specs::PackageInfo pkg_info_builder(std::string s)
         {
-            std::pair<std::string, std::string> from_addition(std::string s)
+            size_t pos_0 = s.rfind("/");
+            std::string s_begin = s.substr(0, pos_0);
+            std::string s_end = s.substr(pos_0 + 1, s.size());
+
+            std::string channel;
+            try
             {
-                std::string new_s = util::split(s, "::").back();
-
-                size_t pos = new_s.rfind("-");
-                std::string bla = new_s.substr(0, pos);
-
-                size_t pos_2 = bla.rfind("-");
-
-                std::string name = bla.substr(0, pos_2);
-                std::string version = bla.substr(pos_2 + 1, bla.size());
-
-                return { name, version };
+                size_t pos = s_begin.rfind("/");
+                channel = s_begin.substr(pos + 1, s_begin.size());
+            }
+            catch (...)
+            {
+                channel = s_begin;
             }
 
-            std::pair<std::string, std::string> from_removal(std::string s)
-            {
-                std::string ok_s = util::split(s, "/").back();
+            std::string s_pkg = util::split(s_end, "::").back();
 
-                std::string new_s = util::split(ok_s, "::").back();
+            size_t pos_1 = s_pkg.rfind("-");
+            std::string s_pkg_ = s_pkg.substr(0, pos_1);
+            std::string build_string = s_pkg.substr(pos_1 + 1, s_pkg.size());
 
-                size_t pos = new_s.rfind("-");
-                std::string bla = new_s.substr(0, pos);
+            size_t pos_2 = s_pkg_.rfind("-");
+            std::string name = s_pkg_.substr(0, pos_2);
+            std::string version = s_pkg_.substr(pos_2 + 1, s_pkg_.size());
 
-                size_t pos_2 = bla.rfind("-");
+            specs::PackageInfo pkg_info{ name = name,
+                                         version = version,
+                                         channel = channel,
+                                         build_string = build_string };
+            return pkg_info;
+        }
 
-                std::string name = bla.substr(0, pos_2);
-                std::string version = bla.substr(pos_2 + 1, bla.size());
-
-                return { name, version };
-            }
-        };
-
-        // TODO: don't keep the "address" ???
         PackageDiff
         get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int REVISION)
         {
             struct revision
             {
                 int key = -1;
-                std::map<std::string, std::string> removed_pkg = {};
-                std::map<std::string, std::string> installed_pkg = {};
+                std::map<std::string, specs::PackageInfo> removed_pkg = {};
+                std::map<std::string, specs::PackageInfo> installed_pkg = {};
             };
 
             std::vector<revision> revisions;
-            int count = 0;  // TODO: remove
             for (auto r : user_requests)
             {
-                std::cout << "ur_num: " << count << std::endl;
-                PackageInfoBuilder pkg_info_builder;
                 if ((r.link_dists.size() > 0) || (r.unlink_dists.size() > 0))
                 {
                     if (r.revision_num > REVISION)
                     {
-                        std::cout << "revision_num: " << r.revision_num << std::endl;
-                        std::cout << "cmd: " << r.cmd << std::endl;
-                        std::cout << "conda_version: " << r.conda_version << std::endl;
                         revision rev{ /*.key = */ r.revision_num };
                         for (auto ud : r.unlink_dists)
                         {
-                            auto new_s = pkg_info_builder.from_removal(ud);
-                            std::string name = new_s.first;
-                            std::string version = new_s.second;
-                            rev.removed_pkg[name] = version;
-                            std::cout << "- name: " << name << std::endl;
-                            std::cout << "version: " << rev.removed_pkg[name] << std::endl;
+                            auto pkg_info = pkg_info_builder(ud);
+                            auto name = pkg_info.name;
+                            rev.removed_pkg[name] = pkg_info;
                         }
                         for (auto ld : r.link_dists)
                         {
-                            auto new_s = pkg_info_builder.from_addition(ld);
-                            std::string name = new_s.first;
-                            std::string version = new_s.second;
-                            rev.installed_pkg[name] = version;
-                            std::cout << "+ name: " << name << std::endl;
-                            std::cout << "version: " << rev.installed_pkg[name] << std::endl;
+                            auto pkg_info = pkg_info_builder(ld);
+                            auto name = pkg_info.name;
+                            rev.installed_pkg[name] = pkg_info;
                         }
                         revisions.push_back(rev);
                     }
                 }
-                count += 1;
             }
-            std::cout << "user_request done" << std::endl;
 
-            std::map<std::string, std::string> removed_pkg_diff;
-            std::map<std::string, std::string> installed_pkg_diff;
+            std::map<std::string, specs::PackageInfo> removed_pkg_diff;
+            std::map<std::string, specs::PackageInfo> installed_pkg_diff;
 
             auto cancel_last_install = [&installed_pkg_diff, &removed_pkg_diff](
                                            revision& rev,
@@ -1140,12 +1124,10 @@ namespace mamba
                     removed_pkg_diff.erase(remove_iter);
                 }
             };
-            std::cout << "revisions size: " << revisions.size() << std::endl;
 
             while (!revisions.empty())
             {
                 auto& revision = *(revisions.begin());
-                std::cout << "initiation ok" << std::endl;
                 while (!revision.removed_pkg.empty())
                 {
                     auto [pkg_name, pkg_operation] = *(revision.removed_pkg.begin());
@@ -1159,7 +1141,6 @@ namespace mamba
                     }
                     delete_no_op(pkg_name);
                 }
-                std::cout << "removed_pkg ok" << std::endl;
                 while (!revision.installed_pkg.empty())
                 {
                     auto [pkg_name, pkg_operation] = *(revision.installed_pkg.begin());
@@ -1173,7 +1154,6 @@ namespace mamba
                     }
                     delete_no_op(pkg_name);
                 }
-                std::cout << "installed_pkg ok" << std::endl;
                 revisions.erase(revisions.begin());
             }
             return { removed_pkg_diff, installed_pkg_diff };
@@ -1223,14 +1203,14 @@ namespace mamba
 
             std::vector<specs::PackageInfo> pkgs_to_remove;
             std::vector<specs::PackageInfo> pkgs_to_install;
-            // for (const auto& pkg : installed_pkg_diff)
-            // {
-            //     pkgs_to_remove.push_back(pkg.second.version);
-            // }
-            // for (const auto& pkg : removed_pkg_diff)
-            // {
-            //     pkgs_to_install.push_back(pkg.second.version);
-            // }
+            for (const auto& pkg : installed_pkg_diff)
+            {
+                pkgs_to_remove.push_back(pkg.second);
+            }
+            for (const auto& pkg : removed_pkg_diff)
+            {
+                pkgs_to_install.push_back(pkg.second);
+            }
             auto transaction = MTransaction(ctx, db, pkgs_to_remove, pkgs_to_install, package_caches);
             execute_transaction(transaction);
         }

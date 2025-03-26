@@ -113,20 +113,10 @@ namespace mamba
         {
         }
 
-        struct PackageOperation
-        {
-            // specs::PackageInfo infos;
-            // std::string name;
-            std::string version;
-            // std::string address;
-        };
-
         struct PackageDiff
         {
-            std::map<std::string, std::string>& removed_pkg_diff;
-            std::map<std::string, std::string>& installed_pkg_diff;
-            // std::map<std::string, PackageOperation>& removed_pkg_diff;
-            // std::map<std::string, PackageOperation>& installed_pkg_diff;
+            std::map<std::string, specs::PackageInfo>& removed_pkg_diff;
+            std::map<std::string, specs::PackageInfo>& installed_pkg_diff;
         };
 
         PackageDiff

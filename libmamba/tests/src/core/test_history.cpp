@@ -120,17 +120,19 @@ namespace mamba
             const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
             const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
 
-            // std::cout << "removed pkgs: " << std::endl;
-            // for (const auto& pkg : removed_pkg_diff)
-            // {
-            //     std::cout << pkg.first << ": " << pkg.second << std::endl;
-            // }
-            // std::cout << std::endl;
-            // std::cout << "installed pkgs: " << ": " << pkg.second << std::endl;
-            // for (const auto& pkg : installed_pkg_diff)
-            // {
-            //     std::cout << pkg.first << std::endl;
-            // }
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << "removed pkgs: " << removed_pkg_diff.size() << std::endl;
+            for (const auto& pkg : removed_pkg_diff)
+            {
+                std::cout << pkg.first << ": " << pkg.second.version << std::endl;
+            }
+            std::cout << std::endl;
+            std::cout << "installed pkgs: " << installed_pkg_diff.size() << std::endl;
+            for (const auto& pkg : installed_pkg_diff)
+            {
+                std::cout << pkg.first << ": " << pkg.second.version << std::endl;
+            }
         }
 
 #ifndef _WIN32
