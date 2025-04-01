@@ -1024,8 +1024,6 @@ namespace mamba
         PackageDiff
         get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int REVISION)
         {
-            std::cout << "WAAAAZZZAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
-
             struct revision
             {
                 int key = -1;
@@ -1072,14 +1070,10 @@ namespace mamba
                     auto iter = removed_pkg_diff.find(pkg_name);
                     if (iter != removed_pkg_diff.end() && iter->second.version == version)
                     {
-                        std::cout << "\tremove_pkg_diff - erase: " << iter->second.version
-                                  << std::endl;
                         removed_pkg_diff.erase(iter);
                     }
                     else
                     {
-                        std::cout << "\tinstal_pkg_diff - add: " << rev_iter->second.version
-                                  << std::endl;
                         installed_pkg_diff[pkg_name] = rev_iter->second;
                     }
                     rev.installed_pkg.erase(rev_iter);
@@ -1098,14 +1092,10 @@ namespace mamba
                     auto iter = installed_pkg_diff.find(pkg_name);
                     if (iter != installed_pkg_diff.end() && iter->second.version == version)
                     {
-                        std::cout << "\tinstal_pkg_diff - erase: " << iter->second.version
-                                  << std::endl;
                         installed_pkg_diff.erase(iter);
                     }
                     else
                     {
-                        std::cout << "\tremove_pkg_diff - add: " << rev_iter->second.version
-                                  << std::endl;
                         removed_pkg_diff[pkg_name] = rev_iter->second;
                     }
                     rev.removed_pkg.erase(rev_iter);
@@ -1114,24 +1104,18 @@ namespace mamba
                 return res;
             };
 
-            int i = 0;
             while (!revisions.empty())
             {
                 auto& revision = *(revisions.begin());
-                std::cout << "revision = " << i << std::endl;
-                int removed_rev = 0;
                 while (!revision.removed_pkg.empty())
                 {
-                    std::cout << "Removed rev: " << removed_rev << std::endl;
                     auto [pkg_name, pkg_info] = *(revision.removed_pkg.begin());
                     removed_pkg_diff[pkg_name] = pkg_info;
                     revision.removed_pkg.erase(pkg_name);
-                    std::cout << "\tremove_pkg_diff - erase: " << pkg_info.version << std::endl;
                     bool lastly_removed = true;  // whether last operation on package was a removal
                     lastly_removed = !handle_install(revision, pkg_name);
                     for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
                     {
-                        std::cout << "Removed rev: " << ++removed_rev << std::endl;
                         if (lastly_removed)
                         {
                             lastly_removed = !handle_install(*rev, pkg_name);
@@ -1146,18 +1130,14 @@ namespace mamba
                         }
                     }
                 }
-                int installed_rev = 0;
                 while (!revision.installed_pkg.empty())
                 {
-                    std::cout << "Installed rev: " << installed_rev << std::endl;
                     auto [pkg_name, pkg_info] = *(revision.installed_pkg.begin());
                     installed_pkg_diff[pkg_name] = pkg_info;
-                    std::cout << "\tinstal_pkg_diff - add: " << pkg_info.version << std::endl;
                     revision.installed_pkg.erase(pkg_name);
                     bool lastly_removed = false;
                     for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
                     {
-                        std::cout << "Installed rev: " << ++installed_rev << std::endl;
                         if (!lastly_removed)
                         {
                             lastly_removed = handle_remove(*rev, pkg_name);
@@ -1169,7 +1149,6 @@ namespace mamba
                     }
                 }
                 revisions.erase(revisions.begin());
-                ++i;
             }
             return { removed_pkg_diff, installed_pkg_diff };
         }
