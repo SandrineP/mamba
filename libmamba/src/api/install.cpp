@@ -989,7 +989,7 @@ namespace mamba
 
         specs::PackageInfo pkg_info_builder(std::string s)
         {
-            size_t pos_0 = s.rfind("/");
+            size_t pos_0 = s.rfind("/");  // won´t work with the actual history
             std::string s_begin = s.substr(0, pos_0);
             std::string s_end = s.substr(pos_0 + 1, s.size());
 
@@ -1024,6 +1024,8 @@ namespace mamba
         PackageDiff
         get_revision_pkg_diff(std::vector<History::UserRequest> user_requests, int REVISION)
         {
+            std::cout << "WAAAAZZZAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+
             struct revision
             {
                 int key = -1;
@@ -1059,102 +1061,115 @@ namespace mamba
             std::map<std::string, specs::PackageInfo> removed_pkg_diff;
             std::map<std::string, specs::PackageInfo> installed_pkg_diff;
 
-            auto cancel_last_install = [&installed_pkg_diff, &removed_pkg_diff](
-                                           revision& rev,
-                                           const std::string& pkg_name,
-                                           bool last_removed,
-                                           bool remove_chain
-                                       )
+            auto handle_install =
+                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
             {
                 bool res = false;
-                if (!last_removed)
+                if (auto rev_iter = rev.installed_pkg.find(pkg_name);
+                    rev_iter != rev.installed_pkg.end())
                 {
-                    if (rev.removed_pkg.find(pkg_name) != rev.removed_pkg.end())
+                    auto version = rev.installed_pkg[pkg_name].version;
+                    auto iter = removed_pkg_diff.find(pkg_name);
+                    if (iter != removed_pkg_diff.end() && iter->second.version == version)
                     {
-                        if (remove_chain)
-                        {
-                            installed_pkg_diff.erase(pkg_name);
-                        }
-                        else
-                        {
-                            removed_pkg_diff[pkg_name] = rev.removed_pkg[pkg_name];
-                        }
-                        rev.removed_pkg.erase(pkg_name);
-                        res = true;
+                        std::cout << "\tremove_pkg_diff - erase: " << iter->second.version
+                                  << std::endl;
+                        removed_pkg_diff.erase(iter);
                     }
+                    else
+                    {
+                        std::cout << "\tinstal_pkg_diff - add: " << rev_iter->second.version
+                                  << std::endl;
+                        installed_pkg_diff[pkg_name] = rev_iter->second;
+                    }
+                    rev.installed_pkg.erase(rev_iter);
+                    res = true;
                 }
                 return res;
             };
 
-            auto cancel_last_remove = [&installed_pkg_diff, &removed_pkg_diff](
-                                          revision& rev,
-                                          const std::string& pkg_name,
-                                          bool last_removed,
-                                          bool remove_chain
-                                      )
+            auto handle_remove =
+                [&installed_pkg_diff, &removed_pkg_diff](revision& rev, const std::string& pkg_name)
             {
                 bool res = false;
-                if (last_removed)
+                if (auto rev_iter = rev.removed_pkg.find(pkg_name); rev_iter != rev.removed_pkg.end())
                 {
-                    if (rev.installed_pkg.find(pkg_name) != rev.installed_pkg.end())
+                    auto version = rev.removed_pkg[pkg_name].version;
+                    auto iter = installed_pkg_diff.find(pkg_name);
+                    if (iter != installed_pkg_diff.end() && iter->second.version == version)
                     {
-                        if (remove_chain)
-                        {
-                            installed_pkg_diff[pkg_name] = rev.installed_pkg[pkg_name];
-                        }
-                        else
-                        {
-                            removed_pkg_diff.erase(pkg_name);
-                        }
-                        rev.installed_pkg.erase(pkg_name);
-                        res = true;
+                        std::cout << "\tinstal_pkg_diff - erase: " << iter->second.version
+                                  << std::endl;
+                        installed_pkg_diff.erase(iter);
                     }
+                    else
+                    {
+                        std::cout << "\tremove_pkg_diff - add: " << rev_iter->second.version
+                                  << std::endl;
+                        removed_pkg_diff[pkg_name] = rev_iter->second;
+                    }
+                    rev.removed_pkg.erase(rev_iter);
+                    res = true;
                 }
                 return res;
             };
 
-            auto delete_no_op = [&installed_pkg_diff, &removed_pkg_diff](const std::string& pkg_name)
-            {
-                auto install_iter = installed_pkg_diff.find(pkg_name);
-                auto remove_iter = removed_pkg_diff.find(pkg_name);
-                if (install_iter != installed_pkg_diff.end() && remove_iter != removed_pkg_diff.end()
-                    && install_iter->second == remove_iter->second)
-                {
-                    installed_pkg_diff.erase(install_iter);
-                    removed_pkg_diff.erase(remove_iter);
-                }
-            };
-
+            int i = 0;
             while (!revisions.empty())
             {
                 auto& revision = *(revisions.begin());
+                std::cout << "revision = " << i << std::endl;
+                int removed_rev = 0;
                 while (!revision.removed_pkg.empty())
                 {
-                    auto [pkg_name, pkg_operation] = *(revision.removed_pkg.begin());
-                    removed_pkg_diff[pkg_name] = pkg_operation;
+                    std::cout << "Removed rev: " << removed_rev << std::endl;
+                    auto [pkg_name, pkg_info] = *(revision.removed_pkg.begin());
+                    removed_pkg_diff[pkg_name] = pkg_info;
                     revision.removed_pkg.erase(pkg_name);
-                    bool last_removed = !cancel_last_remove(revision, pkg_name, true, true);
+                    std::cout << "\tremove_pkg_diff - erase: " << pkg_info.version << std::endl;
+                    bool lastly_removed = true;  // whether last operation on package was a removal
+                    lastly_removed = !handle_install(revision, pkg_name);
                     for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
                     {
-                        last_removed = !cancel_last_remove(*rev, pkg_name, last_removed, true);
-                        last_removed = cancel_last_install(*rev, pkg_name, last_removed, true);
+                        std::cout << "Removed rev: " << ++removed_rev << std::endl;
+                        if (lastly_removed)
+                        {
+                            lastly_removed = !handle_install(*rev, pkg_name);
+                        }
+                        else
+                        {
+                            lastly_removed = handle_remove(*rev, pkg_name);
+                            if (lastly_removed)
+                            {
+                                lastly_removed = !handle_install(*rev, pkg_name);
+                            }
+                        }
                     }
-                    delete_no_op(pkg_name);
                 }
+                int installed_rev = 0;
                 while (!revision.installed_pkg.empty())
                 {
-                    auto [pkg_name, pkg_operation] = *(revision.installed_pkg.begin());
-                    installed_pkg_diff[pkg_name] = pkg_operation;
+                    std::cout << "Installed rev: " << installed_rev << std::endl;
+                    auto [pkg_name, pkg_info] = *(revision.installed_pkg.begin());
+                    installed_pkg_diff[pkg_name] = pkg_info;
+                    std::cout << "\tinstal_pkg_diff - add: " << pkg_info.version << std::endl;
                     revision.installed_pkg.erase(pkg_name);
-                    bool last_removed = false;
+                    bool lastly_removed = false;
                     for (auto rev = ++revisions.begin(); rev != revisions.end(); ++rev)
                     {
-                        last_removed = cancel_last_install(*rev, pkg_name, last_removed, false);
-                        last_removed = !cancel_last_remove(*rev, pkg_name, last_removed, false);
+                        std::cout << "Installed rev: " << ++installed_rev << std::endl;
+                        if (!lastly_removed)
+                        {
+                            lastly_removed = handle_remove(*rev, pkg_name);
+                            if (lastly_removed)
+                            {
+                                lastly_removed = !handle_install(*rev, pkg_name);
+                            }
+                        }
                     }
-                    delete_no_op(pkg_name);
                 }
                 revisions.erase(revisions.begin());
+                ++i;
             }
             return { removed_pkg_diff, installed_pkg_diff };
         }
