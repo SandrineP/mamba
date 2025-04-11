@@ -987,24 +987,41 @@ namespace mamba
             }
         }
 
+        // The following function parses the different format that can be found in the history file.
+        // conda/mamba1 format:
+        // installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // mamba2 broken format:
+        // installed: +conda-forge::xtl-0.8.0-h84d6215_0
+        // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // mamba2 new format:
+        // installed: +https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
         specs::PackageInfo pkg_info_builder(std::string s)
         {
-            size_t pos_0 = s.rfind("/");  // won´t work with the actual history
-            std::string s_begin = s.substr(0, pos_0);
-            std::string s_end = s.substr(pos_0 + 1, s.size());
-
+            std::string s_pkg;
             std::string channel;
-            try
+            size_t pos_0 = s.rfind("/");
+            if (pos_0 != std::string::npos)
             {
+                std::string s_begin = s.substr(0, pos_0);
+                std::string s_end = s.substr(pos_0 + 1, s.size());
                 size_t pos = s_begin.rfind("/");
-                channel = s_begin.substr(pos + 1, s_begin.size());
+                if (pos != std::string::npos)
+                {
+                    channel = s_begin.substr(pos + 1, s_begin.size());
+                }
+                else
+                {
+                    channel = s_begin;
+                }
+                s_pkg = util::split(s_end, "::").back();
             }
-            catch (...)
+            else
             {
-                channel = s_begin;
+                channel = util::split(s, "::").front();
+                s_pkg = util::split(s, "::").back();
             }
-
-            std::string s_pkg = util::split(s_end, "::").back();
 
             size_t pos_1 = s_pkg.rfind("-");
             std::string s_pkg_ = s_pkg.substr(0, pos_1);
@@ -1014,10 +1031,7 @@ namespace mamba
             std::string name = s_pkg_.substr(0, pos_2);
             std::string version = s_pkg_.substr(pos_2 + 1, s_pkg_.size());
 
-            specs::PackageInfo pkg_info{ name = name,
-                                         version = version,
-                                         channel = channel,
-                                         build_string = build_string };
+            specs::PackageInfo pkg_info{ name, version, build_string, channel };
             return pkg_info;
         }
 

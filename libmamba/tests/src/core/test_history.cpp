@@ -107,6 +107,23 @@ namespace mamba
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
         }
 
+        TEST_CASE("parse_history")
+        {
+            std::vector<std::string> test_list{
+                "conda-forge/linux-64::xtl-0.8.0-h84d6215_0",
+                "conda-forge::xtl-0.8.0-h84d6215_0",
+                "https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0"
+            };
+            for (auto s : test_list)
+            {
+                specs::PackageInfo pkg_info = mamba::detail::pkg_info_builder(s);
+                REQUIRE(pkg_info.name == "xtl");
+                REQUIRE(pkg_info.version == "0.8.0");
+                REQUIRE(pkg_info.channel == "conda-forge");
+                REQUIRE(pkg_info.build_string == "h84d6215_0");
+            }
+        }
+
         TEST_CASE("revision_diff")
         {
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
