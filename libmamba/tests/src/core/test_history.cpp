@@ -107,7 +107,7 @@ namespace mamba
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
         }
 
-        TEST_CASE("parse_history")
+        TEST_CASE("parse_all_formats")
         {
             std::vector<std::string> test_list{
                 "conda-forge/linux-64::xtl-0.8.0-h84d6215_0",
@@ -137,19 +137,12 @@ namespace mamba
             const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
             const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
 
-            std::cout << std::endl;
-            std::cout << std::endl;
-            std::cout << "removed pkgs: " << removed_pkg_diff.size() << std::endl;
-            for (const auto& pkg : removed_pkg_diff)
-            {
-                std::cout << pkg.first << ": " << pkg.second.version << std::endl;
-            }
-            std::cout << std::endl;
-            std::cout << "installed pkgs: " << installed_pkg_diff.size() << std::endl;
-            for (const auto& pkg : installed_pkg_diff)
-            {
-                std::cout << pkg.first << ": " << pkg.second.version << std::endl;
-            }
+            REQUIRE(removed_pkg_diff.find("nlohmann_json")->second.version == "3.12.0");
+            REQUIRE(removed_pkg_diff.find("xtl")->second.version == "0.7.2");
+            REQUIRE(installed_pkg_diff.find("cpp-tabulate")->second.version == "1.5");
+            REQUIRE(installed_pkg_diff.find("wheel")->second.version == "0.40.0");
+            REQUIRE(installed_pkg_diff.find("openssl")->second.version == "3.5.0");
+            REQUIRE(installed_pkg_diff.find("xtl")->second.version == "0.8.0");
         }
 
 #ifndef _WIN32

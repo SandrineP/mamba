@@ -987,14 +987,11 @@ namespace mamba
             }
         }
 
-        // The following function parses the different format that can be found in the history file.
-        // conda/mamba1 format:
-        // installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
-        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0
-        // mamba2 broken format:
-        // installed: +conda-forge::xtl-0.8.0-h84d6215_0
-        // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
-        // mamba2 new format:
+        // The following function parses the different formats that can be found in the history
+        // file. conda/mamba1 format: installed: +conda-forge/linux-64::xtl-0.8.0-h84d6215_0
+        // removed: -conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 broken format: installed:
+        // +conda-forge::xtl-0.8.0-h84d6215_0 removed:
+        // -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0 mamba2 new format:
         // installed: +https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
         // removed: -https://conda.anaconda.org/conda-forge/linux-64::xtl-0.8.0-h84d6215_0
         specs::PackageInfo pkg_info_builder(std::string s)
