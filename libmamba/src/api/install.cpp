@@ -256,6 +256,10 @@ namespace mamba
                 false
             );
         }
+        else if (revision != -1)
+        {
+            detail::install_revision(context, channel_context, revision);
+        }
         else if (!install_specs.empty())
         {
             if (use_explicit)
@@ -266,10 +270,6 @@ namespace mamba
             {
                 mamba::install_specs(context, channel_context, config, install_specs, false);
             }
-        }
-        else if (revision != -1)
-        {
-            detail::install_revision(context, channel_context, revision);
         }
         else
         {
