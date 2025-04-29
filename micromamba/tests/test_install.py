@@ -848,13 +848,13 @@ def test_dry_run_pip_section(tmp_home, tmp_root_prefix, tmp_path):
 
 # @pytest.mark.parametrize("revision_option", ["", ("--revision",1)])
 # def test_revision_diff(revision_option):
-def test_revision_diff():
+def test_install_revision(tmp_home, tmp_root_prefix):
     env_name = "myenv"
 
     helpers.create("-n", env_name, "python=3.8")
-    helpers.install("-n", env_name, "xeus=2.0")
-    helpers.update("-n", env_name, "xeus=4.0")
-    helpers.uninstall("-n", env_name, "xeus")
+    helpers.install("-n", env_name, "xtl=0.7.2")
+    helpers.update("-n", env_name, "xtl")
+    # helpers.uninstall("-n", env_name, "xeus")
     helpers.install("-n", env_name, "--revision", "1")
     res = helpers.umamba_list(
         "-n",
