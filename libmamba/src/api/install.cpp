@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 #include "mamba/api/channel_loader.hpp"
@@ -14,6 +15,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
@@ -285,12 +287,14 @@ namespace mamba
 
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
+        auto& revision = config.at("revision").value<int>();
 
         auto& context = config.context();
         auto channel_context = ChannelContext::make_conda_compatible(context);
 
         if (context.env_lockfile)
         {
+            std::cout << "???????????????? 1111" << std::endl;
             const auto lockfile_path = context.env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
@@ -301,8 +305,15 @@ namespace mamba
                 false
             );
         }
+        else if (revision != -1)
+        {
+            std::cout << "GNAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+            // TODO: check that revision is an integer >0
+            detail::install_revision(context, channel_context, revision);
+        }
         else if (!install_specs.empty())
         {
+            std::cout << "???????????????? 2222" << std::endl;
             if (use_explicit)
             {
                 install_explicit_specs(ctx, channel_context, install_specs, false);
@@ -314,6 +325,7 @@ namespace mamba
         }
         else
         {
+            std::cout << "???????????????? 3333" << std::endl;
             Console::instance().print("Nothing to do.");
         }
     }
@@ -1009,6 +1021,77 @@ namespace mamba
                     channels = cli_channels;
                 }
             }
+        }
+
+        void install_revision(Context& ctx, ChannelContext& channel_context, int target_revision)
+        {
+            std::cout << "GNEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+            if (!exp_prefix_data)
+            {
+                throw std::runtime_error(exp_prefix_data.error().what());
+            }
+            PrefixData& prefix_data = exp_prefix_data.value();
+            auto user_requests = prefix_data.history().get_user_requests();
+
+            detail::PackageDiff pkg_diff{};
+            auto revision_pkg_diff = pkg_diff.get_revision_pkg_diff(user_requests, target_revision);
+            const auto& removed_pkg_diff = revision_pkg_diff.removed_pkg_diff;
+            const auto& installed_pkg_diff = revision_pkg_diff.installed_pkg_diff;
+
+            MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+
+            solver::libsolv::Database db{ channel_context.params() };
+            add_spdlog_logger_to_database(db);
+
+            auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+            if (!exp_load)
+            {
+                throw std::runtime_error(exp_load.error().what());
+            }
+
+            load_installed_packages_in_database(ctx, db, prefix_data);
+
+            // TODO: write a function to avoid repiting for installed and removed packages
+            std::cout << "Here we are !!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+            for (auto pkg : removed_pkg_diff)
+            {
+                std::cout << pkg.first << std::endl;
+                db.for_each_package_matching(
+                    specs::MatchSpec::parse(pkg.second.name + "==" + pkg.second.version).value(),
+                    [&](specs::PackageInfo&& pkg_info)
+                    { std::cout << pkg_info.name << " found in db" << std::endl; }
+                );  // removed_pkg_diff[pkg]=pkg_info      std::move(pkg_info) ???
+                // Is it possible to get more that one package info using the name and the version ?
+            }
+
+            // auto execute_transaction = [&](MTransaction& transaction)
+            // {
+            //     if (ctx.output_params.json)
+            //     {
+            //         transaction.log_json();
+            //     }
+
+            //     auto prompt_entry = transaction.prompt(ctx, channel_context);
+            //     if (prompt_entry)
+            //     {
+            //         transaction.execute(ctx, channel_context, prefix_data);
+            //     }
+            //     return prompt_entry;
+            // };
+
+            // std::vector<specs::PackageInfo> pkgs_to_remove;
+            // std::vector<specs::PackageInfo> pkgs_to_install;
+            // for (const auto& pkg : installed_pkg_diff)
+            // {
+            //     pkgs_to_remove.push_back(pkg.second);
+            // }
+            // for (const auto& pkg : removed_pkg_diff)
+            // {
+            //     pkgs_to_install.push_back(pkg.second);
+            // }
+            // auto transaction = MTransaction(ctx, db, pkgs_to_remove, pkgs_to_install,
+            // package_caches); execute_transaction(transaction);
         }
     }  // detail
 }  // mamba
