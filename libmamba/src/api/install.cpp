@@ -1040,7 +1040,8 @@ namespace mamba
             );
         }
 
-        void install_revision(Context& ctx, ChannelContext& channel_context, int target_revision)
+        void
+        install_revision(Context& ctx, ChannelContext& channel_context, std::size_t target_revision)
         {
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)

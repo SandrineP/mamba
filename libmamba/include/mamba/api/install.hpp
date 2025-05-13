@@ -115,7 +115,7 @@ namespace mamba
         {
         }
 
-        void install_revision(Context& ctx, ChannelContext& channel_context, int revision);
+        void install_revision(Context& ctx, ChannelContext& channel_context, std::size_t revision);
     }
 
 }
