@@ -33,6 +33,8 @@ namespace mamba
 
     void install(Configuration& config);
 
+    void install_revision(Configuration& config, std::size_t revision);
+
     void install_specs(
         Context& ctx,
         ChannelContext& channel_context,

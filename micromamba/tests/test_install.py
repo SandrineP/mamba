@@ -7,6 +7,7 @@ from pathlib import Path
 from packaging.version import Version
 
 import pytest
+import re
 
 # Need to import everything to get fixtures
 from .helpers import *  # noqa: F403
@@ -852,13 +853,15 @@ def test_install_revision(tmp_home, tmp_root_prefix):
     env_name = "myenv"
 
     helpers.create("-n", env_name, "python=3.8")
-    helpers.install("-n", env_name, "xtl=0.7.2")
+    helpers.install("-n", env_name, "xtl=0.7.2", "nlohmann_json=3.12.0")
     helpers.update("-n", env_name, "xtl")
-    # helpers.uninstall("-n", env_name, "xeus")
+    helpers.uninstall("-n", env_name, "nlohmann_json")
     helpers.install("-n", env_name, "--revision", "1")
     res = helpers.umamba_list(
         "-n",
         env_name,
     )
 
-    print(res)
+    xtl_regex = re.compile(r"xtl\s+0.7.2")
+    assert xtl_regex.search(res)
+    assert "nlohmann_json" in res
